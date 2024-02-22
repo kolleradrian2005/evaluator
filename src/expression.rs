@@ -9,7 +9,6 @@ pub enum Expression {
     Value(u32), // 0 for x0, 1 for x1, etc
 }
 
-#[derive(Debug)]
 enum Operator {
     And,
     Or,
@@ -84,7 +83,7 @@ impl Expression {
                     if operators.len() < expressions.len() {
                         panic!("Could not parse: Unexpected negation at position {:?}", pos);
                     }
-                    neg = true;
+                    neg = !neg;
                 }
                 AND => {
                     // There should be an expression
@@ -138,6 +137,7 @@ impl Expression {
                         }
                         evaluation_table.insert(digit, false);
                         let mut expr = Box::new(Expression::Value(digit));
+                        // Negate if needed
                         if neg {
                             expr = Box::new(Expression::Neg(expr));
                             neg = false;
