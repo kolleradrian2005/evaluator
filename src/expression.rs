@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt};
 
-use crate::settings::{self, AND, NEG, OR};
+use crate::settings::{AND, NEG, OR};
 
 pub enum Expression {
     And(Box<Expression>, Box<Expression>),
@@ -40,18 +40,19 @@ impl Expression {
         evaluation_table: &mut HashMap<u32, bool>,
         keys: &Vec<u32>,
         index: usize,
+        verbose: bool,
     ) -> bool {
         if index < keys.len() {
             let key = keys[index];
             evaluation_table.insert(key, true);
-            if self.combinate(evaluation_table, keys, index + 1) {
+            if self.combinate(evaluation_table, keys, index + 1, verbose) {
                 return true;
             }
             evaluation_table.insert(key, false);
-            self.combinate(evaluation_table, keys, index + 1)
+            self.combinate(evaluation_table, keys, index + 1, verbose)
         } else {
             let result = self.evaluate(evaluation_table);
-            if settings::VERBOSE {
+            if verbose {
                 for (key, value) in evaluation_table.iter() {
                     print!("x{:?}: {:?}\t", key, value);
                 }
