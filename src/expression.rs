@@ -62,6 +62,34 @@ impl Expression {
         }
     }
 
+    fn parse_variable(
+        variable: &mut String,
+        evaluation_table: &mut HashMap<u32, bool>,
+        neg: &mut bool,
+        expressions: &mut Vec<Box<Expression>>,
+        pos: usize,
+    ) {
+        if variable.len() == 0 {
+            return;
+        }
+        if let Ok(num) = variable.parse::<u32>() {
+            evaluation_table.insert(num, false);
+            let mut expr = Box::new(Expression::Value(num));
+            // Negate if needed
+            if *neg {
+                expr = Box::new(Expression::Neg(expr));
+                *neg = false;
+            }
+            expressions.push(expr);
+            variable.clear();
+        } else {
+            panic!(
+                "Could not parse: Variable {} is not a number at position {:?}",
+                variable, pos
+            );
+        }
+    }
+
     pub fn parse(
         str: &mut String,
         initial_length: usize,
@@ -75,11 +103,20 @@ impl Expression {
         // For error indictaion, indices characters from one
         let mut pos = initial_length - str.len();
 
+        let mut variable = String::new();
+
         // Parse till ')' or end of string
         while let Some(c) = str.pop() {
             pos += 1;
             match c {
                 NEG => {
+                    Self::parse_variable(
+                        &mut variable,
+                        evaluation_table,
+                        &mut neg,
+                        &mut expressions,
+                        pos,
+                    );
                     // There should be an operator or ')'
                     if operators.len() < expressions.len() {
                         panic!("Could not parse: Unexpected negation at position {:?}", pos);
@@ -87,6 +124,13 @@ impl Expression {
                     neg = !neg;
                 }
                 AND => {
+                    Self::parse_variable(
+                        &mut variable,
+                        evaluation_table,
+                        &mut neg,
+                        &mut expressions,
+                        pos,
+                    );
                     // There should be an expression
                     if operators.len() >= expressions.len() {
                         panic!(
@@ -97,6 +141,13 @@ impl Expression {
                     operators.push(Box::new(Operator::And));
                 }
                 OR => {
+                    Self::parse_variable(
+                        &mut variable,
+                        evaluation_table,
+                        &mut neg,
+                        &mut expressions,
+                        pos,
+                    );
                     // There should be an expression
                     if operators.len() >= expressions.len() {
                         panic!(
@@ -107,6 +158,13 @@ impl Expression {
                     operators.push(Box::new(Operator::Or));
                 }
                 '(' => {
+                    Self::parse_variable(
+                        &mut variable,
+                        evaluation_table,
+                        &mut neg,
+                        &mut expressions,
+                        pos,
+                    );
                     // There should be an operator or ')'
                     if operators.len() < expressions.len() {
                         panic!(
@@ -122,13 +180,29 @@ impl Expression {
                     }
                     expressions.push(expr);
                 }
-                ')' => break,
+                ')' => {
+                    Self::parse_variable(
+                        &mut variable,
+                        evaluation_table,
+                        &mut neg,
+                        &mut expressions,
+                        pos,
+                    );
+                    break;
+                }
                 c => {
                     // Ignore whitespace
                     if c.is_whitespace() {
+                        Self::parse_variable(
+                            &mut variable,
+                            evaluation_table,
+                            &mut neg,
+                            &mut expressions,
+                            pos,
+                        );
                         continue;
                     }
-                    if let Some(digit) = c.to_digit(10) {
+                    if c.is_digit(10) {
                         // There should be an operator or ')'
                         if operators.len() < expressions.len() {
                             panic!(
@@ -136,14 +210,7 @@ impl Expression {
                                 c, pos
                             );
                         }
-                        evaluation_table.insert(digit, false);
-                        let mut expr = Box::new(Expression::Value(digit));
-                        // Negate if needed
-                        if neg {
-                            expr = Box::new(Expression::Neg(expr));
-                            neg = false;
-                        }
-                        expressions.push(expr);
+                        variable.push(c);
                     } else {
                         panic!(
                             "Could not parse: {:?} is not a digit at position {:?}",
@@ -153,6 +220,13 @@ impl Expression {
                 }
             }
         }
+        Self::parse_variable(
+            &mut variable,
+            evaluation_table,
+            &mut neg,
+            &mut expressions,
+            pos,
+        );
         let mut i = 0;
         // Formate AND operations
         while i < operators.len() {
