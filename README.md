@@ -10,3 +10,11 @@ For example
 Enter the expression using `&`, `|`, `!` operators meaning and, or, negation respecively. Also use `0`, `1`, ... numbers meaning `x0`, `x1`, ...
 <br>
 Use the `-v` flag to print out all the considered combinations.
+
+### Build
+
+```sh
+cargo run --release
+```
+
+The executable will be built in `/target/release`.
